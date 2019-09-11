@@ -5,6 +5,8 @@ const defaultConfig = {
   onAnalysed: null,
 };
 
+const microphoneConfigOptions = ['bufferLen', 'numChannels', 'mimeType'];
+
 class Recorder {
   constructor(audioContext, config = {}) {
     this.config = Object.assign({}, defaultConfig, config);
@@ -18,6 +20,13 @@ class Recorder {
     this.analyserContext = null;
     this.recIndex = 0;
     this.stream = null;
+
+    this.microphoneConfig = microphoneConfigOptions.reduce((a, c) => {
+      if (config[c]) {
+        a[c] = config[c] // eslint-disable-line
+      }
+      return a;
+    }, {});
 
     this.updateAnalysers = this.updateAnalysers.bind(this);
   }
@@ -36,7 +45,10 @@ class Recorder {
       this.analyserNode.fftSize = 2048;
       this.inputPoint.connect(this.analyserNode);
 
-      this.audioRecorder = new Microphone(this.inputPoint);
+      this.audioRecorder = new Microphone(
+        this.inputPoint,
+        this.microphoneConfig,
+      );
 
       const zeroGain = this.audioContext.createGain();
       zeroGain.gain.value = 0.0;
@@ -87,7 +99,8 @@ class Recorder {
       let datum;
 
       for (let idx = 0; idx < 255; idx += 1) {
-        datum = Math.floor(freqByteData[idx]) - (Math.floor(freqByteData[idx]) % 5);
+        datum =
+          Math.floor(freqByteData[idx]) - (Math.floor(freqByteData[idx]) % 5);
 
         if (datum !== 0) {
           lastNonZero = idx;
